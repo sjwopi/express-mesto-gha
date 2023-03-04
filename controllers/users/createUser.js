@@ -8,8 +8,8 @@ module.exports.createUser = (req, res) => {
   const { name, about, avatar } = req.body;
 
   User.create({ name, about, avatar })
-    .then((user) => { res.send({ data: user }) })
-    .catch(() => {
+    .then((user) => { res.send({ data: user }); })
+    .catch((err) => {
       if (err.name === 'ValidationError') {
         return res.status(ERROR_CODE_BAD_REQUEST).send({ message: 'Ошибка при обработке данных' });
       }

@@ -11,7 +11,5 @@ module.exports.getUser = (req, res) => {
       }
       return res.status(ERROR_CODE_NOT_FOUND).send({ data: 'Пользователь не найден.' });
     })
-    .catch(() => {
-      return res.status(ERROR_CODE_INTERNAL).send({ message: 'Ошибка работы сервера' });
-    });
+    .catch(() => res.status(ERROR_CODE_INTERNAL).send({ message: 'Ошибка работы сервера' }));
 };
