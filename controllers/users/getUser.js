@@ -1,6 +1,8 @@
 const User = require('../../models/user');
 const {
-  ERROR_CODE_INTERNAL, ERROR_CODE_NOT_FOUND,
+  ERROR_CODE_BAD_REQUEST,
+  ERROR_CODE_NOT_FOUND,
+  ERROR_CODE_INTERNAL,
 } = require('../../utils/constants');
 
 module.exports.getUser = (req, res) => {
@@ -9,7 +11,18 @@ module.exports.getUser = (req, res) => {
       if (user) {
         return res.send({ data: user });
       }
-      return res.status(ERROR_CODE_NOT_FOUND).send({ data: 'Пользователь не найден.' });
+      return res
+        .status(ERROR_CODE_NOT_FOUND)
+        .send({ data: 'Пользователь не найден.' });
     })
-    .catch(() => res.status(ERROR_CODE_INTERNAL).send({ message: 'Ошибка работы сервера' }));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        return res
+          .status(ERROR_CODE_BAD_REQUEST)
+          .send({ message: 'Ошибка при обработке данных' });
+      }
+      return res
+        .status(ERROR_CODE_INTERNAL)
+        .send({ message: 'Ошибка работы сервера' });
+    });
 };
