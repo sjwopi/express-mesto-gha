@@ -1,9 +1,5 @@
 const User = require('../../models/user');
-const {
-  ERROR_CODE_BAD_REQUEST,
-  ERROR_CODE_NOT_FOUND,
-  ERROR_CODE_INTERNAL,
-} = require('../../utils/constants');
+
 
 module.exports.getUser = (req, res) => {
   User.findById(req.params.userId)
