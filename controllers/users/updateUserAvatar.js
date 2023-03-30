@@ -1,38 +1,22 @@
 const User = require('../../models/user');
 const {
-  ERROR_CODE_NOT_FOUND,
-  ERROR_CODE_BAD_REQUEST,
-  ERROR_CODE_INTERNAL,
-} = require('../../utils/constants');
+  ValidationError,
+  NotFoundError,
+  InternalError,
+} = require('../../utils/errors/index');
 
-module.exports.updateUserAvatar = (req, res) => {
+module.exports.updateUserAvatar = (req, res, next) => {
   const { avatar } = req.body;
-  User.findByIdAndUpdate(
-    req.user._id,
-    { avatar },
-    { new: true, runValidators: true },
-  )
-    .then((updatedAvatar) => {
-      if (!updatedAvatar) {
-        return res
-          .status(ERROR_CODE_NOT_FOUND)
-          .send({ message: 'Пользователь не найден' });
-      }
-      return res.send({ data: updatedAvatar });
-    })
+  User.findByIdAndUpdate(req.user._id, { avatar }, { new: true })
+    .orFail(new NotFoundError(`Пользователь с указанным не найден`))
+    .then((user) => res.status(OK).send({ data: user }))
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        return res
-          .status(ERROR_CODE_BAD_REQUEST)
-          .send({ message: 'Ошибка при обработке данных' });
+      if (err instanceof NotFoundError) {
+        return next(err);
       }
-      if (err.name === 'CastError') {
-        return res
-          .status(ERROR_CODE_BAD_REQUEST)
-          .send({ message: 'Ошибка при обработке данных' });
+      if (err instanceof mongoose.Error.ValidationError) {
+        return next(new ValidationError('Переданы некорректные данные пользователя'));
       }
-      return res
-        .status(ERROR_CODE_INTERNAL)
-        .send({ message: 'Ошибка работы сервера' });
+      return next(new InternalError('Произошла ошибка на сервере.'));
     });
 };

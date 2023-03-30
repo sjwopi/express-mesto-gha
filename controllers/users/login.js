@@ -1,17 +1,28 @@
 const jwt = require('jsonwebtoken');
 const User = require('../../models/user');
 const {
-  ERROR_CODE_BAD_REQUEST,
-  ERROR_CODE_INTERNAL,
-} = require('../../utils/constants');
+  UnauthorizedError
+} = require('../../utils/errors/index');
 
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
-
-  return User.findUserByCredentials(email, password)
+  User.findOne({ email }).select('+password')
     .then((user) => {
-      const tokenJWT = jwt.sign({ _id: user._id }, SECRETKEY, { expiresIn: '7d' });
-      res.status(200).send({ tokenJWT });
+      if (user === null) {
+        throw new UnauthorizedError('Неправильная почта или пароль');
+      } return bcrypt.compare(password, user.password)
+        .then((matched) => {
+          if (!matched) {
+            throw new UnauthorizedError('Неправильная почта или пароль');
+          } const token = jwt.sign({ _id: user._id }, 'secretkey', { expiresIn: '7d' });
+          res.cookie('jwt', token, { maxAge: 3600000 * 7, httpOnly: true, sameSite: true }).send({
+            name: user.name,
+            about: user.about,
+            avatar: user.avatar,
+            email: user.email,
+            _id: user._id,
+          });
+        });
     })
-    .catch(err => next(err));
+    .catch(next);
 };

@@ -1,24 +1,23 @@
 const User = require('../../models/user');
+const {
+  ValidationError,
+  NotFoundError,
+  InternalError,
+} = require('../../utils/errors');
 
-
-module.exports.getUser = (req, res) => {
-  User.findById(req.params.userId)
-    .then((user) => {
-      if (user) {
-        return res.send({ data: user });
-      }
-      return res
-        .status(ERROR_CODE_NOT_FOUND)
-        .send({ data: 'Пользователь не найден.' });
-    })
+module.exports.getUser = (req, res, next) => {
+  let userId;
+  if (req.params.userId) userId = req.params.userId;
+  else userId = req.user._id;
+  User.findById(userId).orFail(new NotFoundError(`Пользователь с указанным id не найден`))
+    .then((user) => res.send({ data: user }))
     .catch((err) => {
-      if (err.name === 'CastError') {
-        return res
-          .status(ERROR_CODE_BAD_REQUEST)
-          .send({ message: 'Ошибка при обработке данных' });
+      if (err instanceof NotFoundError) {
+        return next(err);
       }
-      return res
-        .status(ERROR_CODE_INTERNAL)
-        .send({ message: 'Ошибка работы сервера' });
+      if (err instanceof mongoose.Error.CastError) {
+        return next(new ValidationError('Переданы некорректные данные пользователя'));
+      }
+      return next(new InternalError('Произошла ошибка на сервере.'));
     });
 };

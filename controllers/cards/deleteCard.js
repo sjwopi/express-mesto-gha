@@ -1,28 +1,28 @@
 const { Card } = require('../../models/card');
 const {
-  ERROR_CODE_BAD_REQUEST,
-  ERROR_CODE_NOT_FOUND,
-  ERROR_CODE_INTERNAL,
-} = require('../../utils/constants');
+  ValidationError,
+  InternalError,
+  NotFoundError,
+  ForbiddenError
+} = require('../../utils/errors');
 
-module.exports.deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.cardId)
-    .then((card) => {
-      if (!card) {
-        return res
-          .status(ERROR_CODE_NOT_FOUND)
-          .send({ message: 'Карточка не найдена' });
+module.exports.deleteCard = (req, res, next) => {
+  Card.findById(req.params.cardId)
+    .orFail(new NotFoundError('Не найдена карточка с указанным id.'))
+    .then((cardDoc) => {
+      if (req.user._id !== cardDoc.owner.toString()) {
+        return next(new ForbiddenError('Нельзя удалять чужую карточку'));
       }
-      return res.send({ data: card });
+      return Card.findByIdAndRemove(req.params.cardId);
     })
+    .then((card) => res.send({ message: `Карточка с указанным id удалена` }))
     .catch((err) => {
-      if (err.name === 'CastError') {
-        return res
-          .status(ERROR_CODE_BAD_REQUEST)
-          .send({ message: 'Ошибка при обработке данных' });
+      if (err instanceof NotFoundError) {
+        return next(err);
       }
-      return res
-        .status(ERROR_CODE_INTERNAL)
-        .send({ message: 'Ошибка работы сервера' });
+      if (err instanceof mongoose.Error.CastError) {
+        return next(new ValidationError('Переданы некорректные данные'));
+      }
+      return next(new InternalError('Произошла ошибка на сервере.'));
     });
 };

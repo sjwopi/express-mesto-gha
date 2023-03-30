@@ -1,8 +1,7 @@
 const Card = require('../../models/card');
-const { ERROR_CODE_INTERNAL } = require('../../utils/constants');
 
-module.exports.getCards = (req, res) => {
+module.exports.getCards = (req, res, next) => {
   Card.find({})
-    .then((cards) => res.send({ data: cards }))
-    .catch(() => res.status(ERROR_CODE_INTERNAL).send({ message: 'Ошибка работы сервера' }));
+    .then((cards) => res.status(OK).send({ data: cards }))
+    .catch(next);
 };

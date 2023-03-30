@@ -1,10 +1,7 @@
 const User = require('../../models/user');
-const {
-  ERROR_CODE_INTERNAL,
-} = require('../../utils/constants');
 
-module.exports.getUsers = (req, res) => {
+module.exports.getUsers = (req, res, next) => {
   User.find({})
-    .then((user) => res.send({ data: user }))
-    .catch(() => res.status(ERROR_CODE_INTERNAL).send({ message: 'Ошибка работы сервера' }));
+    .then((users) => res.status(OK).send({ data: users }))
+    .catch(next);
 };

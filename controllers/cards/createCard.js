@@ -1,23 +1,19 @@
 const { Card } = require('../../models/card');
 const {
-  ERROR_CODE_BAD_REQUEST,
-  ERROR_CODE_INTERNAL,
-} = require('../../utils/constants');
+  ValidationError,
+  InternalError,
+} = require('../../utils/errors');
 
-module.exports.createCard = (req, res) => {
+module.exports.createCard = (req, res, next) => {
   const { name, link } = req.body;
-  const owner = req.user._id;
-
-  Card.create({ name, link, owner })
-    .then((newCard) => res.send({ data: newCard }))
+  Card.create({ name, link, owner: req.user._id })
+    .then((card) => {
+      res.send({ data: card });
+    })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        return res
-          .status(ERROR_CODE_BAD_REQUEST)
-          .send({ message: 'Переданы некорректные данные при создании карточки' });
+      if (err instanceof mongoose.Error.ValidationError) {
+        return next(new ValidationError('Переданы некорректные данные'));
       }
-      return res
-        .status(ERROR_CODE_INTERNAL)
-        .send({ message: 'Ошибка работы сервера' });
+      return next(new InternalError('Произошла ошибка на сервере.'));
     });
 };
